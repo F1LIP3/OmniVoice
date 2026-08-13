@@ -333,9 +333,7 @@ def save_audio(audio: np.ndarray, save_path: str, sample_rate: int) -> None:
         segment.export(save_path, format="mp3", bitrate="128k")
 
     else:
-        raise ValueError(
-            f"Unsupported output format '{ext}'. Use '.wav' or '.mp3'."
-        )
+        raise ValueError(f"Unsupported output format '{ext}'. Use '.wav' or '.mp3'.")
 
 
 def cross_fade_chunks(
