@@ -278,9 +278,7 @@ def _get_audio_duration(audio_path: str) -> float:
     (e.g. MP3/M4A on older libsndfile builds).
     """
     try:
-        # Local import to satisfy linters that may not resolve the module
-        # at the top-level in all execution contexts (and to make this
-        # function self-contained in case it's moved or copied).
+        # Local import so ruff sees the binding and to avoid importing soundfile at module scope
         import soundfile as sf  # type: ignore
 
         info = sf.info(audio_path)
