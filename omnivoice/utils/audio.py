@@ -313,27 +313,46 @@ def save_audio(audio: np.ndarray, save_path: str, sample_rate: int) -> None:
     """
     ext = Path(save_path).suffix.lower()
 
+    # Accept either (T,) or (C, T) — normalize to (C, T).
+    arr = np.asarray(audio)
+    if arr.ndim == 1:
+        arr = arr[np.newaxis, :]
+    elif arr.ndim == 2:
+        pass
+    else:
+        raise ValueError("Audio must be a 1-D or 2-D numpy array (T,) or (C, T).")
+
     if ext == ".wav":
-        # soundfile natively supports WAV — fast, no ffmpeg dependency.
-        sf.write(save_path, audio, sample_rate)
+        # soundfile expects shape (T, C) or (T,) — transpose channels-first.
+        sf.write(save_path, arr.T, sample_rate)
+        return
 
-    elif ext == ".mp3":
-        # pydub (wraps ffmpeg) handles MP3 encoding with bitrate control.
-        from pydub import AudioSegment
+    if ext == ".mp3":
+        try:
+            from pydub import AudioSegment
+        except Exception as e:
+            raise RuntimeError(
+                "pydub/ffmpeg required to export MP3. Install pydub and ensure ffmpeg is available on PATH."
+            ) from e
 
-        audio_int = (audio * 32768.0).clip(-32768, 32767).astype(np.int16)
+        # Convert to 16-bit PCM and interleave channels for pydub.
+        audio_int = (arr * 32768.0).clip(-32768, 32767).astype(np.int16)
         if audio_int.shape[0] > 1:
-            audio_int = audio_int.T.flatten()  # interleave channels
+            interleaved = audio_int.T.flatten()
+        else:
+            interleaved = audio_int[0]
+
+        channels = int(arr.shape[0])
         segment = AudioSegment(
-            data=audio_int.tobytes(),
+            data=interleaved.tobytes(),
             sample_width=2,
             frame_rate=sample_rate,
-            channels=audio_int.shape[0] if audio_int.ndim > 1 else 1,
+            channels=channels,
         )
         segment.export(save_path, format="mp3", bitrate="128k")
+        return
 
-    else:
-        raise ValueError(f"Unsupported output format '{ext}'. Use '.wav' or '.mp3'.")
+    raise ValueError(f"Unsupported output format '{ext}'. Use '.wav' or '.mp3'.")
 
 
 def cross_fade_chunks(
