@@ -61,6 +61,14 @@ def get_parser() -> argparse.ArgumentParser:
         choices=["wav", "mp3"],
         help="Output format (overrides extension heuristic). Default: inferred from extension.",
     )
+    parser.add_argument(
+        "--lora_adapter",
+        type=str,
+        default=None,
+        help="Path to a LoRA adapter directory (e.g. a LoRA training "
+        "checkpoint) to apply on top of --model. Merged in-memory before "
+        "generation.",
+    )
     # Voice cloning
     parser.add_argument(
         "--ref_audio",
@@ -129,6 +137,12 @@ def main():
     model = OmniVoice.from_pretrained(
         args.model, device_map=device, dtype=torch.float16
     )
+
+    if args.lora_adapter:
+        from omnivoice.utils.lora import load_lora_adapter
+
+        logging.info(f"Applying LoRA adapter from {args.lora_adapter} ...")
+        model = load_lora_adapter(model, args.lora_adapter)
 
     logging.info(f"Generating audio for: {args.text[:80]}...")
     audios = model.generate(
