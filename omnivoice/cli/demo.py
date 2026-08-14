@@ -353,7 +353,7 @@ by Xiaomi AI Lab Next-gen Kaldi team.
                             "</span>"
                         )
                         vc_ref_text = gr.Textbox(
-                            label=("Reference Text (optional) / 参考音频文本（可选）"),
+                            label=("Reference Text (optional) / 参考音频文本 (可选)"),
                             lines=2,
                             placeholder="Transcript of the reference audio. Leave empty"
                             " to auto-transcribe via ASR models.",
@@ -479,6 +479,7 @@ by Xiaomi AI Lab Next-gen Kaldi team.
                     with gr.Column(scale=1):
                         vd_audio = gr.Audio(
                             label="Output Audio / 合成结果",
+                            type="numpy",
                         )
                         vd_status = gr.Textbox(label="Status / 状态", lines=2)
 
