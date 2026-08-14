@@ -156,7 +156,7 @@ def build_demo(
     model: OmniVoice,
     checkpoint: str,
     generate_fn=None,
-) -> gr.Blocks:
+) -> tuple[gr.Blocks, Any, str]:
     sampling_rate = model.sampling_rate
 
     # -- shared generation core --
@@ -318,16 +318,16 @@ def build_demo(
     with gr.Blocks(title="OmniVoice Demo") as demo:
         gr.Markdown(
             """
-# OmniVoice Demo
-
-State-of-the-art text-to-speech model for **600+ languages**, supporting:
-
-- **Voice Clone** — Clone any voice from a reference audio
-- **Voice Design** — Create custom voices with speaker attributes
-
-Built with [OmniVoice](https://github.com/k2-fsa/OmniVoice)
-by Xiaomi AI Lab Next-gen Kaldi team.
-"""
+ # OmniVoice Demo
+ 
+ State-of-the-art text-to-speech model for **600+ languages**, supporting:
+ 
+ - **Voice Clone** — Clone any voice from a reference audio
+ - **Voice Design** — Create custom voices with speaker attributes
+ 
+ Built with [OmniVoice](https://github.com/k2-fsa/OmniVoice)
+ by Xiaomi AI Lab Next-gen Kaldi team.
+ """
         )
 
         with gr.Tabs():
