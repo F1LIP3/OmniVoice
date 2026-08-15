@@ -251,6 +251,7 @@ def build_demo(
                 _registered_with_gradio = False
 
             if not _registered_with_gradio:
+
                 def _cleanup_dir(path=demo_cache):
                     try:
                         shutil.rmtree(path)
@@ -259,7 +260,9 @@ def build_demo(
 
                 atexit.register(_cleanup_dir)
 
-            tmp = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False, dir=demo_cache)
+            tmp = tempfile.NamedTemporaryFile(
+                suffix=".mp3", delete=False, dir=demo_cache
+            )
             tmp.close()
             try:
                 save_audio(audio[0], tmp.name, sampling_rate)
