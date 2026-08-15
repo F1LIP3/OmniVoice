@@ -27,6 +27,8 @@ import argparse
 import logging
 import os
 import tempfile
+import shutil
+import atexit
 from typing import Any, Dict
 
 import gradio as gr
@@ -215,11 +217,49 @@ def build_demo(
             return None, f"Error: {type(e).__name__}: {e}"
 
         if output_format == "mp3":
-            # Save to a system temp file and return the filepath.
-            # Gradio serves files from the system temp directory.
-            tmp = tempfile.NamedTemporaryFile(
-                suffix=".mp3", delete=False, dir=tempfile.gettempdir()
-            )
+            # Prefer Gradio's managed cache directory when available; fall
+            # back to system tempdir. Attempt to register the cache for
+            # cleanup with Gradio when possible, otherwise register an atexit
+            # cleanup that removes our cache subdirectory.
+            cache_dir = None
+            # Try common Gradio helpers
+            try:
+                if hasattr(gr, "get_cache_dir"):
+                    cache_dir = gr.get_cache_dir()
+                elif hasattr(gr, "utils") and hasattr(gr.utils, "get_cache_dir"):
+                    cache_dir = gr.utils.get_cache_dir()
+            except Exception:
+                cache_dir = None
+
+            if not cache_dir:
+                cache_dir = tempfile.gettempdir()
+
+            demo_cache = os.path.join(cache_dir, "omnivoice_demo_cache")
+            os.makedirs(demo_cache, exist_ok=True)
+
+            # Best-effort: let Gradio manage cache cleanup if it exposes a
+            # delete_cache-like API; otherwise register atexit cleanup.
+            _registered_with_gradio = False
+            try:
+                if hasattr(gr, "delete_cache") and callable(gr.delete_cache):
+                    try:
+                        gr.delete_cache(demo_cache)
+                        _registered_with_gradio = True
+                    except Exception:
+                        _registered_with_gradio = False
+            except Exception:
+                _registered_with_gradio = False
+
+            if not _registered_with_gradio:
+                def _cleanup_dir(path=demo_cache):
+                    try:
+                        shutil.rmtree(path)
+                    except Exception:
+                        pass
+
+                atexit.register(_cleanup_dir)
+
+            tmp = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False, dir=demo_cache)
             tmp.close()
             try:
                 save_audio(audio[0], tmp.name, sampling_rate)
