@@ -328,8 +328,11 @@ def save_audio(audio: np.ndarray, save_path: str, sample_rate: int) -> None:
         return
 
     if ext == ".mp3":
+        # Import pydub here and surface a clear RuntimeError if pydub or
+        # ffmpeg are not available. Preserve the original exception as the
+        # cause so callers can inspect the underlying failure.
         try:
-            from pydub import AudioSegment
+            from pydub import AudioSegment  # re-import locally to be explicit
         except Exception as e:
             raise RuntimeError(
                 "pydub/ffmpeg required to export MP3. Install pydub and ensure ffmpeg is available on PATH."
@@ -343,13 +346,24 @@ def save_audio(audio: np.ndarray, save_path: str, sample_rate: int) -> None:
             interleaved = audio_int[0]
 
         channels = int(arr.shape[0])
-        segment = AudioSegment(
-            data=interleaved.tobytes(),
-            sample_width=2,
-            frame_rate=sample_rate,
-            channels=channels,
-        )
-        segment.export(save_path, format="mp3", bitrate="128k")
+        try:
+            segment = AudioSegment(
+                data=interleaved.tobytes(),
+                sample_width=2,
+                frame_rate=sample_rate,
+                channels=channels,
+            )
+            # Export may invoke ffmpeg and raise FileNotFoundError if ffmpeg is missing.
+            segment.export(save_path, format="mp3", bitrate="128k")
+        except FileNotFoundError as e:
+            # ffmpeg binary not found — present a clear RuntimeError and
+            # keep the original exception as the cause.
+            raise RuntimeError(
+                "pydub/ffmpeg required to export MP3. Install pydub and ensure ffmpeg is available on PATH."
+            ) from e
+        except Exception as e:  # pragma: no cover - unexpected export failure
+            # Wrap other export errors to preserve caller expectations.
+            raise RuntimeError("MP3 export failed.") from e
         return
 
     raise ValueError(f"Unsupported output format '{ext}'. Use '.wav' or '.mp3'.")
